@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Feature Flags</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #111; color: #ddd; }
+    h1 { color: #ff6b35; }
+    .flag { padding: 10px; margin: 5px 0; background: #222; border-left: 3px solid #ff6b35; }
+    .enabled { border-color: #22c55e; }
+    .disabled { border-color: #ef4444; }
+    .conditions { color: #888; font-size: 12px; margin-top: 4px; }
+    input, button { padding: 8px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>Feature Flags</h1>
+  <div id="flags"></div>
+  
+  <hr style="border-color: #333; margin: 20px 0;">
+  
+  <h3>Test Flag</h3>
+  <input id="flagId" placeholder="flag id" value="new-dashboard">
+  <input id="userId" placeholder="user id">
+  <input id="roles" placeholder="roles (comma)">
+  <button onclick="test()">Check</button>
+  <div id="result" style="margin-top: 10px;"></div>
+
+  <script>
+    async function load() {
+      const res = await fetch('/api/v1/flags');
+      const { flags } = await res.json();
+      const div = document.getElementById('flags');
+      if (!flags || Object.keys(flags).length === 0) {
+        div.innerHTML = 'No flags';
+        return;
+      }
+      div.innerHTML = Object.values(flags).map(f => 
+        `<div class="flag ${f.enabled ? 'enabled' : 'disabled'}">
+          <strong>${f.name}</strong> (${f.id})<br>
+          <span class="conditions">${f.conditions.map(c => c.type).join(', ')}</span>
+        </div>`
+      ).join('');
+    }
+
+    async function test() {
+      const id = document.getElementById('flagId').value;
+      const uid = document.getElementById('userId').value;
+      const roles = document.getElementById('roles').value;
+      let url = `/api/v1/flags/${id}`;
+      const params = [];
+      if (uid) params.push('userId=' + uid);
+      if (roles) params.push('roles=' + roles);
+      if (params.length) url += '?' + params.join('&');
+      
+      const res = await fetch(url);
+      const data = await res.json();
+      document.getElementById('result').innerHTML = 
+        `<strong>${id}</strong>: <span style="color:${data.enabled?'#22c55e':'#ef4444'}">${data.enabled?'ENABLED':'DISABLED'}</span>`;
+    }
+
+    load();
+  </script>
+</body>
+</html>
